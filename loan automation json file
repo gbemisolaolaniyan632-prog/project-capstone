@@ -1,0 +1,413 @@
+{
+  "name": "MY CAPSTONE PROJECT WORKFLOW",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1xcc_dkkmg7IDA_mV6iMUja4ZnBNNjN99JSgLqFPw7iw",
+          "mode": "list",
+          "cachedResultName": "Loan App form (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1xcc_dkkmg7IDA_mV6iMUja4ZnBNNjN99JSgLqFPw7iw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1128999975,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1xcc_dkkmg7IDA_mV6iMUja4ZnBNNjN99JSgLqFPw7iw/edit#gid=1128999975"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1392,
+        -32
+      ],
+      "id": "2fea24c7-71ea-4078-bf79-55d408538976",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "Qx83BC1p6guXKcnJ",
+          "name": "Google Sheets Trigger OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "HTTP-Referer",
+              "value": "http://localhost"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "openai/gpt-3.5-turbo"
+            },
+            {
+              "name": "prompt",
+              "value": "You are a loan risk analysis assistant.\n\nAnalyze the loan application below and return ONLY:\n\nRisk Level: Low / Medium / High\nDecision: APPROVE or REJECT\nReason: 1 short sentence\n\nApplication:\nName: {{$json[\"Full Name\"]}}\nEmail: {{$json[\"Email\"]}}\nPhone: {{$json[\"Phone Number\"]}}\nMonthly Income: {{$json[\"Monthy Income\"]}}\nLoan Amount: {{$json[\"Loan Amount\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1200,
+        -32
+      ],
+      "id": "191394fc-7371-4fac-bd84-b45eb52d4ae1",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "459c3d6d-4d3c-491e-9b7d-c48ee65c8d94",
+              "name": "decision",
+              "value": "={{$json[\"choices\"][0][\"text\"].match(/Decision:\\s*(APPROVE|REJECT)/)?.[1]}}",
+              "type": "string"
+            },
+            {
+              "id": "dee4453a-97d0-4879-b96c-fd16d3ab527f",
+              "name": "risk",
+              "value": "={{$json[\"choices\"][0][\"text\"].match(/Risk Level:\\s*(Low|Medium|High)/)?.[1]}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -992,
+        -32
+      ],
+      "id": "6ec5e3b6-c08c-4d43-9fbc-948c446b94b6",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "84ec0071-a996-4d23-99c7-fca7cd09b428",
+              "leftValue": "={{$json[\"decision\"]}}",
+              "rightValue": "APPROVE",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "3f90ff7d-491d-4f5e-a83a-8b211c6ca187",
+              "leftValue": "={{$json[\"decision\"]}} is equal to APPROVE",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "6cdece14-0f32-42e1-9b57-71e1a416ab6d",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -816,
+        -32
+      ],
+      "id": "e80cea35-7da8-4072-a271-11638cb8ae68",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$json[\"Email\"] || \"no-email-found@test.com\"}}",
+        "subject": "Loan Application Status",
+        "emailType": "text",
+        "message": "=Hello {{$json[\"Full Name\"] || \"Applicant\"}},\n\nYour loan application has been reviewed.\n\nDecision: {{$json[\"decision\"] || \"Not available\"}}\nRisk Level: {{$json[\"risk\"] || \"Not available\"}}\n\nThank you.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -624,
+        -32
+      ],
+      "id": "237436dd-02c2-4a84-ada2-401d00254e8a",
+      "name": "Send a message",
+      "webhookId": "46833f73-395e-4ded-b89a-50c7eb486513",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "EuQlTeXoj7PjxQoo",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1xcc_dkkmg7IDA_mV6iMUja4ZnBNNjN99JSgLqFPw7iw",
+          "mode": "list",
+          "cachedResultName": "Loan App form (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1xcc_dkkmg7IDA_mV6iMUja4ZnBNNjN99JSgLqFPw7iw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1128999975,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1xcc_dkkmg7IDA_mV6iMUja4ZnBNNjN99JSgLqFPw7iw/edit#gid=1128999975"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Full Name": "={{$node[\"Google Sheets Trigger\"].json[\"Full Name\"]}}",
+            "Timestamp": "={{$now}}",
+            "Email": "={{$node[\"Google Sheets Trigger\"].json[\"Email\"]}}",
+            "Phone Number": "={{$node[\"Google Sheets Trigger\"].json[\"Email\"]}}",
+            "Monthy Income": "={{$node[\"Google Sheets Trigger\"].json[\"Monthy Income\"]}}",
+            "Loan Amount": "={{$node[\"Google Sheets Trigger\"].json[\"Loan Amount\"]}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Full Name",
+              "displayName": "Full Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Monthy Income",
+              "displayName": "Monthy Income",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Loan Amount",
+              "displayName": "Loan Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -448,
+        -32
+      ],
+      "id": "8e90d465-14d4-487d-9baa-853a8e391bd6",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TWsQXsnM91eejNp6",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b345c7af-a405-42e1-8392-25aa82363c6e",
+              "name": "masked_phone",
+              "value": "={{$node[\"Google Sheets Trigger\"].json[\"Phone Number\"].slice(0,4) + \"*****\" + $node[\"Google Sheets Trigger\"].json[\"Phone Number\"].slice(-2)}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -240,
+        -32
+      ],
+      "id": "4e2a08d4-c3a4-4133-926e-940e1d150986",
+      "name": "Edit Fields1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2d725497-d5cb-456f-a712-e9f45283a99e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "63f5e84833b188bf02cb64bcbae615e05d10d092ea013edf116929a57343b5d3"
+  },
+  "id": "0ITuvjpe4b6XNlVK",
+  "tags": []
+}
